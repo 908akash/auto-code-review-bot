@@ -77,6 +77,23 @@ example.py (3 finding(s)):
   line 5 [high] security — User input is used without validation.
 ```
 
+## Continuous integration & automated review
+
+Two GitHub Actions workflows live in `.github/workflows/`:
+
+- **`ci.yml`** — runs on every push and pull request. It installs the package
+  and runs the full test suite (`python -m pytest -v`) on Python 3.11. It needs
+  no secrets, so it works out of the box for anyone who forks the repo.
+- **`pr-review.yml`** — runs on pull requests. It builds a diff of only the
+  PR's own changes (merge-base/triple-dot against the base branch), runs the
+  review bot over it, and posts the findings as a PR comment. If the bot finds
+  nothing, it posts a short "No issues found" note instead.
+
+One-time setup: running the AI review on your own repo requires an Anthropic
+key. Add it under **Settings > Secrets and variables > Actions** as
+`ANTHROPIC_API_KEY`. If the secret is absent, `pr-review.yml` skips the review
+and comment steps and passes cleanly.
+
 ## Status
 
 The example above uses `--provider fake`, a built-in fixture that runs without

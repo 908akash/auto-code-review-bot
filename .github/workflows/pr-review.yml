@@ -1,0 +1,59 @@
+name: PR Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Check for API key
+        id: check_key
+        run: echo "has_key=${{ secrets.ANTHROPIC_API_KEY != '' }}" >> "$GITHUB_OUTPUT"
+
+      - name: Generate PR diff
+        if: steps.check_key.outputs.has_key == 'true'
+        run: |
+          git fetch --no-tags origin "${{ github.base_ref }}"
+          git diff "origin/${{ github.base_ref }}...HEAD" > pr.diff
+
+      - name: Install
+        if: steps.check_key.outputs.has_key == 'true'
+        run: pip install -e .
+
+      - name: Run review bot
+        if: steps.check_key.outputs.has_key == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: review-bot --diff-file pr.diff --format summary > review.txt
+
+      - name: Post review comment
+        if: steps.check_key.outputs.has_key == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          if [ -s review.txt ]; then
+            gh pr comment "$PR_NUMBER" --body-file review.txt
+          else
+            gh pr comment "$PR_NUMBER" --body "No issues found by the AI reviewer."
+          fi
+
+      - name: Skip notice
+        if: steps.check_key.outputs.has_key != 'true'
+        run: echo "ANTHROPIC_API_KEY not configured; skipping AI review."
