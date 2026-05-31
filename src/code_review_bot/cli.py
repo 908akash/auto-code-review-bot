@@ -5,8 +5,9 @@ from __future__ import annotations
 import sys
 
 import click
+from dotenv import load_dotenv
 
-from .llm import FakeProvider
+from .llm import make_provider
 from .render import render
 from .review import review_diff
 
@@ -25,8 +26,26 @@ from .review import review_diff
     default="summary",
     help="Output format.",
 )
-def main(diff_file: str | None, stdin: bool, fmt: str) -> None:
+@click.option(
+    "--provider",
+    type=click.Choice(["anthropic", "openai", "fake"]),
+    default="anthropic",
+    help="Review provider to use.",
+)
+@click.option(
+    "--model",
+    default=None,
+    help="Model override (defaults to the provider's default).",
+)
+def main(
+    diff_file: str | None,
+    stdin: bool,
+    fmt: str,
+    provider: str,
+    model: str | None,
+) -> None:
     """Review a git diff and print findings."""
+    load_dotenv()
     if diff_file and stdin:
         raise click.UsageError("Use only one of --diff-file or --stdin.")
     if not diff_file and not stdin:
@@ -38,9 +57,7 @@ def main(diff_file: str | None, stdin: bool, fmt: str) -> None:
         with open(diff_file, encoding="utf-8") as handle:
             diff_text = handle.read()
 
-    # TODO: swap FakeProvider for a real LLM-backed ReviewProvider here
-    # (e.g. AnthropicProvider / OpenAIProvider) in the next iteration.
-    provider = FakeProvider()
+    review_provider = make_provider(provider, model)
 
-    findings = review_diff(diff_text, provider)
+    findings = review_diff(diff_text, review_provider)
     click.echo(render(findings, fmt))  # type: ignore[arg-type]

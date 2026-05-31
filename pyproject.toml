@@ -7,7 +7,7 @@ name = "code-review-bot"
 version = "0.1.0"
 description = "Automated code review bot (foundation skeleton)."
 requires-python = ">=3.11"
-dependencies = ["click"]
+dependencies = ["click", "anthropic", "openai", "python-dotenv"]
 
 [project.optional-dependencies]
 dev = ["pytest"]

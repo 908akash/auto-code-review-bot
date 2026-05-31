@@ -33,5 +33,9 @@ def build_review_prompt(file_diff: FileDiff) -> str:
     lines.append('  - "severity": one of "low", "medium", "high"')
     lines.append('  - "message": a short description of the issue (string)')
     lines.append("")
-    lines.append("Return only the JSON array, with no other text.")
+    lines.append(
+        "Respond with ONLY a raw JSON array of findings. Do not wrap it in "
+        "markdown code fences. Do not write any prose, explanation, or text "
+        "before or after the array. If there are no findings, return []."
+    )
     return "\n".join(lines)

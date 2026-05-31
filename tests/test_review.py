@@ -1,6 +1,13 @@
 from __future__ import annotations
 
-from code_review_bot.llm import FakeProvider
+import pytest
+
+from code_review_bot.llm import (
+    AnthropicProvider,
+    FakeProvider,
+    OpenAIProvider,
+    make_provider,
+)
 from code_review_bot.models import Finding
 from code_review_bot.review import review_diff
 
@@ -16,6 +23,19 @@ index 1234567..89abcde 100644
 +y = 3
  print(x)
 """
+
+
+FENCED_RESPONSE = """\
+```json
+[
+  {"file": "a.py", "line": 1, "category": "style", "severity": "low", "message": "Tabs."}
+]
+```"""
+
+
+class FencedProvider:
+    def review(self, prompt: str) -> str:
+        return FENCED_RESPONSE
 
 
 class MalformedProvider:
@@ -51,3 +71,39 @@ def test_empty_diff_means_no_provider_calls() -> None:
 def test_empty_array_response() -> None:
     findings = review_diff(SINGLE_FILE_DIFF, EmptyArrayProvider())
     assert findings == []
+
+
+def test_fenced_json_response_is_stripped() -> None:
+    findings = review_diff(SINGLE_FILE_DIFF, FencedProvider())
+    assert len(findings) == 1
+    assert findings[0].file == "a.py"
+    assert findings[0].message == "Tabs."
+
+
+def test_make_provider_fake() -> None:
+    assert isinstance(make_provider("fake", None), FakeProvider)
+
+
+def test_make_provider_anthropic_no_api_call(monkeypatch) -> None:
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "dummy")
+    provider = make_provider("anthropic", None)
+    assert isinstance(provider, AnthropicProvider)
+    assert provider.model == "claude-sonnet-4-6"
+
+
+def test_make_provider_openai_no_api_call(monkeypatch) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "dummy")
+    provider = make_provider("openai", None)
+    assert isinstance(provider, OpenAIProvider)
+    assert provider.model == "gpt-4o"
+
+
+def test_make_provider_model_override() -> None:
+    provider = make_provider("anthropic", "claude-custom")
+    assert isinstance(provider, AnthropicProvider)
+    assert provider.model == "claude-custom"
+
+
+def test_make_provider_unknown_raises() -> None:
+    with pytest.raises(ValueError):
+        make_provider("bogus", None)

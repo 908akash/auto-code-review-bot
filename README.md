@@ -30,6 +30,34 @@ Choose an output format with `--format` (`summary` is the default):
 git diff | review-bot --stdin --format inline
 ```
 
+## API keys
+
+Copy `.env.example` to `.env` and fill in the key for the provider you want:
+
+```sh
+cp .env.example .env
+# then edit .env:
+#   ANTHROPIC_API_KEY=sk-ant-...
+#   OPENAI_API_KEY=sk-...
+```
+
+The CLI loads `.env` automatically at startup.
+
+## Providers and models
+
+- `--provider anthropic|openai|fake` (default `anthropic`)
+- `--model NAME` overrides the model (defaults: `claude-sonnet-4-6` for
+  anthropic, `gpt-4o` for openai)
+
+Real run against a live model:
+
+```sh
+git diff | review-bot --stdin --provider anthropic
+git diff | review-bot --stdin --provider openai --model gpt-4o
+```
+
+Use `--provider fake` to run the offline fixture without any API key.
+
 ## Finding categories
 
 - **style** — formatting and stylistic issues
@@ -51,9 +79,9 @@ example.py (3 finding(s)):
 
 ## Status
 
-The findings above come from a built-in `FakeProvider` so the pipeline runs
-without any API keys. Real LLM-backed providers (Anthropic, OpenAI) land in the
-next iteration; see `.env.example` for the keys they will use.
+The example above uses `--provider fake`, a built-in fixture that runs without
+any API keys. Anthropic and OpenAI providers are now wired in — see the API
+keys and providers sections above.
 
 ## Development
 

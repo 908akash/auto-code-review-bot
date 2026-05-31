@@ -10,6 +10,20 @@ from .models import Finding
 from .prompts import build_review_prompt
 
 
+def _strip_code_fence(text: str) -> str:
+    """Strip surrounding whitespace and a ```json / ``` code fence if present."""
+    stripped = text.strip()
+    if stripped.startswith("```"):
+        lines = stripped.splitlines()
+        # Drop the opening fence line (e.g. ``` or ```json).
+        lines = lines[1:]
+        # Drop the closing fence line if present.
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+        stripped = "\n".join(lines).strip()
+    return stripped
+
+
 def review_diff(diff_text: str, provider: ReviewProvider) -> list[Finding]:
     """Parse a diff, review each file, and collect findings.
 
@@ -22,7 +36,7 @@ def review_diff(diff_text: str, provider: ReviewProvider) -> list[Finding]:
         prompt = build_review_prompt(file_diff)
         raw = provider.review(prompt)
         try:
-            items = json.loads(raw)
+            items = json.loads(_strip_code_fence(raw))
         except json.JSONDecodeError:
             print(f"warning: skipping malformed JSON for {file_diff.path}")
             continue
