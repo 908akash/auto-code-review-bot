@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "code-review-bot"
+version = "0.1.0"
+description = "Automated code review bot (foundation skeleton)."
+requires-python = ">=3.11"
+dependencies = ["click"]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[project.scripts]
+review-bot = "code_review_bot.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
